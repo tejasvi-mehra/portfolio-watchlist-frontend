@@ -56,23 +56,11 @@ npm run preview
 
 - Backend message and endpoint contract: `API_SPEC.md`
 
-## Frontend Update Workflow
 
-```mermaid
-flowchart TD
-  A[Pick UI behavior change] --> B{Data shape change needed?}
-  B -- Yes --> C[Update protocol types and provider reducers]
-  B -- No --> D[Update page and components]
-  C --> E[Update styles and formatting helpers]
-  D --> E
-  E --> F[Run npm run build]
-  F --> G[Verify watchlist portfolio asset-detail]
-  G --> H[Update README and API_SPEC]
-```
+## Improvement Ideas
 
-## Dev-Level Improvement Ideas
-
+- Add a lightweight frontend perf harness to verify smooth rendering at target symbol/update rates.
+- Add stale-data UI assertions in realtime state reducers for reconnect and background-resume edge cases.
 - Add zod-based runtime guards for websocket payload decoding in provider.
 - Add reusable typed sort hooks for all tabular screens.
-- Harden local config parsing with strict fallback validation and sanitization.
 
