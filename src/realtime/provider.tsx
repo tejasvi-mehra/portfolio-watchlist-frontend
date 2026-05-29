@@ -66,6 +66,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
   const pendingMessagesRef = useRef<unknown[]>([]);
   const rafRef = useRef<number | null>(null);
   const watchlistRef = useRef<Record<string, QuoteView>>({});
+  const forcedSymbolsRef = useRef<Set<string>>(new Set());
 
   const getConfiguredSymbols = useCallback(() => {
     const fromWatchlist = loadWatchlistSymbols();
@@ -73,23 +74,29 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
     return Array.from(new Set([...fromWatchlist, ...fromPortfolio].map((item) => item.trim().toUpperCase())));
   }, []);
 
-  const queueResume = useCallback(() => {
+  const getDesiredSymbols = useCallback(() => {
     const configured = getConfiguredSymbols();
+    const forced = Array.from(forcedSymbolsRef.current.values());
+    return Array.from(new Set([...configured, ...forced]));
+  }, [getConfiguredSymbols]);
+
+  const queueResume = useCallback(() => {
+    const configured = getDesiredSymbols();
     clientRef.current?.send({
       version: 1,
       type: "resume",
       payload: { symbols: configured, last_seen_seq: lastSeenSeqRef.current },
     });
-  }, [getConfiguredSymbols]);
+  }, [getDesiredSymbols]);
 
   const queueInitialSubscribe = useCallback(() => {
-    const configured = getConfiguredSymbols();
+    const configured = getDesiredSymbols();
     clientRef.current?.send({
       version: 1,
       type: "subscribe",
       payload: { symbols: configured, last_seen_seq: lastSeenSeqRef.current },
     });
-  }, [getConfiguredSymbols]);
+  }, [getDesiredSymbols]);
 
   const applySnapshot = useCallback((payload: SnapshotPayload) => {
     lastSeenSeqRef.current = Math.max(lastSeenSeqRef.current, payload.seq || 0);
@@ -352,18 +359,30 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
   }, [queueResume, startClient]);
 
   const subscribeAsset = useCallback((symbol: string) => {
+    const normalized = symbol.trim().toUpperCase();
+    if (!normalized) return;
+    forcedSymbolsRef.current.add(normalized);
+    // Ensure direct asset-page load can bootstrap base stream without watchlist-first dependency.
+    clientRef.current?.send({
+      version: 1,
+      type: "subscribe",
+      payload: { symbols: getDesiredSymbols(), last_seen_seq: lastSeenSeqRef.current },
+    });
     clientRef.current?.send({
       version: 1,
       type: "subscribe_asset",
-      payload: { symbols: [symbol] },
+      payload: { symbols: [normalized] },
     });
-  }, []);
+  }, [getDesiredSymbols]);
 
   const unsubscribeAsset = useCallback((symbol: string) => {
+    const normalized = symbol.trim().toUpperCase();
+    if (!normalized) return;
+    forcedSymbolsRef.current.delete(normalized);
     clientRef.current?.send({
       version: 1,
       type: "unsubscribe_asset",
-      payload: { symbols: [symbol] },
+      payload: { symbols: [normalized] },
     });
   }, []);
 

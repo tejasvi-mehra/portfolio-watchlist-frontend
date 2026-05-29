@@ -24,6 +24,24 @@ export function ConfigurePage() {
     );
   }, [form]);
 
+  const watchlistCandidates = useMemo(
+    () =>
+      catalog
+        .map((item) => item.symbol.trim().toUpperCase())
+        .filter((symbol) => symbol && !symbols.includes(symbol)),
+    [catalog, symbols],
+  );
+
+  useEffect(() => {
+    if (watchlistCandidates.length === 0) {
+      setSymbolInput("");
+      return;
+    }
+    if (!symbolInput || !watchlistCandidates.includes(symbolInput)) {
+      setSymbolInput(watchlistCandidates[0]);
+    }
+  }, [symbolInput, watchlistCandidates]);
+
   useEffect(() => {
     let cancelled = false;
     const loadCatalog = async () => {
@@ -53,8 +71,8 @@ export function ConfigurePage() {
   const addSymbol = (event: FormEvent) => {
     event.preventDefault();
     const normalized = symbolInput.trim().toUpperCase();
-    if (!/^[A-Z0-9#._-]{2,20}$/.test(normalized)) {
-      setMessage("Symbol must be 2-20 chars and use A-Z, 0-9, #, ., _, -");
+    if (!normalized) {
+      setMessage("Pick a symbol from the available list.");
       return;
     }
     if (symbols.includes(normalized)) {
@@ -121,14 +139,24 @@ export function ConfigurePage() {
       <div className="config-grid">
         <article className="card">
           <h3>Watchlist Symbols</h3>
-          <p className="muted">Add symbols you want to follow in realtime.</p>
+          <p className="muted">Add symbols you want to follow in realtime from available symbols.</p>
           <form className="inline-form" onSubmit={addSymbol}>
-            <input
+            <select
               value={symbolInput}
               onChange={(event) => setSymbolInput(event.target.value)}
-              placeholder="e.g. ETH"
               aria-label="Add watchlist symbol"
-            />
+              disabled={watchlistCandidates.length === 0}
+            >
+              {watchlistCandidates.length === 0 ? (
+                <option value="">No symbols available</option>
+              ) : (
+                watchlistCandidates.map((symbol) => (
+                  <option key={symbol} value={symbol}>
+                    {symbol}
+                  </option>
+                ))
+              )}
+            </select>
             <button type="submit" className="btn">
               Add
             </button>

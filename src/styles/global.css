@@ -63,7 +63,8 @@ a {
   margin-bottom: 0.75rem;
 }
 
-input {
+input,
+select {
   background: #0f1219;
   color: #e8eaf0;
   border: 1px solid #333b4f;

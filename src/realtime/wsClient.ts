@@ -81,7 +81,12 @@ export class RealtimeWSClient {
 
   send<TPayload>(message: ClientEnvelope<TPayload>) {
     const payload = JSON.stringify(message);
-    if (!this.socket) return;
+    if (!this.socket) {
+      // Queue early sends made before connect() allocates the websocket.
+      this.pendingSends.push(payload);
+      logger.debug("ws packet queued (no socket yet)", { type: message.type, queue_size: this.pendingSends.length });
+      return;
+    }
     if (this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(payload);
       logger.debug("ws packet sent", message);
