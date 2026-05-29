@@ -39,7 +39,7 @@ npm run preview
 
 ## Configuration
 
-- `VITE_WS_URL` (example `ws://localhost:8080/ws`)
+- `VITE_WS_URL` (example `ws://localhost:8081/ws`)
 - `VITE_API_BASE_URL` (example `http://localhost:8080`)
 - `VITE_LOG_LEVEL` (`debug`, `info`, `error`; default `info`)
 - `VITE_CHART_MAX_POINTS` (default `120`)
@@ -60,7 +60,6 @@ npm run preview
 
 ## Improvement Ideas
 
-- Add a lightweight frontend perf harness to verify smooth rendering at target symbol/update rates.
 - Add stale-data UI assertions in realtime state reducers for reconnect and background-resume edge cases.
 - Add zod-based runtime guards for websocket payload decoding in provider.
 - Add reusable typed sort hooks for all tabular screens.
