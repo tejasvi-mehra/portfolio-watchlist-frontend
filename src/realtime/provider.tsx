@@ -50,6 +50,8 @@ type RealtimeContextValue = {
 
 const RealtimeContext = createContext<RealtimeContextValue | null>(null);
 const STALE_AFTER_MS = 6000;
+const L2_STALE_AFTER_MS = 3000;
+const RETRY_INTERVAL_MS = 2000;
 
 export function RealtimeProvider({ children }: PropsWithChildren) {
   const [connectionState, setConnectionState] = useState<ConnectionState>("reconnecting");
@@ -66,7 +68,9 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
   const pendingMessagesRef = useRef<unknown[]>([]);
   const rafRef = useRef<number | null>(null);
   const watchlistRef = useRef<Record<string, QuoteView>>({});
+  const orderBooksRef = useRef<Record<string, OrderBookView>>({});
   const forcedSymbolsRef = useRef<Set<string>>(new Set());
+  const lastRetryAtMsRef = useRef<number>(0);
 
   const getConfiguredSymbols = useCallback(() => {
     const fromWatchlist = loadWatchlistSymbols();
@@ -97,6 +101,25 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       payload: { symbols: configured, last_seen_seq: lastSeenSeqRef.current },
     });
   }, [getDesiredSymbols]);
+
+  const queueForcedAssetSubscribe = useCallback(() => {
+    const symbols = Array.from(forcedSymbolsRef.current.values());
+    if (symbols.length === 0) return;
+    clientRef.current?.send({
+      version: 1,
+      type: "subscribe_asset",
+      payload: { symbols },
+    });
+  }, []);
+
+  const retryActiveSubscriptions = useCallback(() => {
+    const now = Date.now();
+    if (now - lastRetryAtMsRef.current < RETRY_INTERVAL_MS) return;
+    lastRetryAtMsRef.current = now;
+    // Retry both base stream and detail stream per symbol.
+    queueResume();
+    queueForcedAssetSubscribe();
+  }, [queueForcedAssetSubscribe, queueResume]);
 
   const applySnapshot = useCallback((payload: SnapshotPayload) => {
     lastSeenSeqRef.current = Math.max(lastSeenSeqRef.current, payload.seq || 0);
@@ -252,6 +275,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       onOpen: () => {
         reconnectAttemptRef.current = 0;
         queueInitialSubscribe();
+        queueForcedAssetSubscribe();
       },
       onClose: () => {
         setConnectionState("reconnecting");
@@ -270,11 +294,15 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
     });
     clientRef.current = client;
     client.connect();
-  }, [handleServerMessage, queueInitialSubscribe]);
+  }, [handleServerMessage, queueForcedAssetSubscribe, queueInitialSubscribe]);
 
   useEffect(() => {
     watchlistRef.current = watchlist;
   }, [watchlist]);
+
+  useEffect(() => {
+    orderBooksRef.current = orderBooks;
+  }, [orderBooks]);
 
   useEffect(() => {
     // Keep chart time moving every second even when upstream sends no price-change diff.
@@ -336,6 +364,24 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       if (lastTickAtMsRef.current === 0) return;
       if (Date.now() - lastTickAtMsRef.current > STALE_AFTER_MS) {
         setConnectionState((prev) => (prev === "reconnecting" ? prev : "stale"));
+        retryActiveSubscriptions();
+      }
+    }, 1000);
+
+    const detailRetryTimer = window.setInterval(() => {
+      const forced = Array.from(forcedSymbolsRef.current.values());
+      if (forced.length === 0) return;
+      const now = Date.now();
+      let l2NeedsRetry = false;
+      for (const symbol of forced) {
+        const book = orderBooksRef.current[symbol];
+        if (!book || now - book.timestampMs > L2_STALE_AFTER_MS) {
+          l2NeedsRetry = true;
+          break;
+        }
+      }
+      if (l2NeedsRetry) {
+        retryActiveSubscriptions();
       }
     }, 1000);
 
@@ -346,6 +392,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
     return () => {
       document.removeEventListener("visibilitychange", visibilityHandler);
       window.clearInterval(staleTimer);
+      window.clearInterval(detailRetryTimer);
       unsubscribeConfig();
       if (reconnectTimerRef.current !== null) {
         window.clearTimeout(reconnectTimerRef.current);
@@ -356,7 +403,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       clientRef.current?.disconnect();
       cancelled = true;
     };
-  }, [queueResume, startClient]);
+  }, [queueResume, retryActiveSubscriptions, startClient]);
 
   const subscribeAsset = useCallback((symbol: string) => {
     const normalized = symbol.trim().toUpperCase();
@@ -368,11 +415,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       type: "subscribe",
       payload: { symbols: getDesiredSymbols(), last_seen_seq: lastSeenSeqRef.current },
     });
-    clientRef.current?.send({
-      version: 1,
-      type: "subscribe_asset",
-      payload: { symbols: [normalized] },
-    });
+    queueForcedAssetSubscribe();
   }, [getDesiredSymbols]);
 
   const unsubscribeAsset = useCallback((symbol: string) => {
