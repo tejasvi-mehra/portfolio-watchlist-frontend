@@ -13,7 +13,7 @@ const resolvedLogLevel =
     : "info";
 
 export const env = {
-  appName: (import.meta.env.VITE_APP_NAME as string | undefined) || "Axis Web",
+  appName: (import.meta.env.VITE_APP_NAME as string | undefined) || "Portfolio Watcher",
   wsUrl: resolvedWsUrl,
   apiBaseUrl: resolvedApiBaseUrl,
   logLevel: resolvedLogLevel as "debug" | "info" | "error",

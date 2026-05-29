@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { env } from "../../config/env";
 
 const linkStyle = ({ isActive }: { isActive: boolean }) => ({
   fontWeight: isActive ? 700 : 500,
@@ -10,7 +11,7 @@ export function AppShell() {
   return (
     <div className="page">
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ margin: 0 }}>Axis Web</h1>
+        <h1 style={{ margin: 0 }}>{env.appName}</h1>
         <nav>
           <NavLink to="/configure" style={linkStyle}>
             Configure
