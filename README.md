@@ -1,22 +1,27 @@
-# Frontend (Web) - Live Portfolio Stream MVP
+# Frontend Runtime
 
-This is a React web app scaffold focused on MVP delivery for the requirements in `../requirements.md`.
+The frontend is a React + TypeScript app for live watchlist, portfolio, and asset detail views.
 
-## Scope for this scaffold
+## What The App Shows
 
-- Web app only (no React Native in this phase).
-- Core screens:
-  - Watchlist
-  - Portfolio
-  - Asset detail
-- Realtime client layer and protocol contracts prepared for backend integration.
-- Directory-local checklists so independent agents can implement safely by module.
+- Watchlist with live symbol prices, SOD price, day change, and sortable columns
+- Portfolio with live mark-based valuation and P&L
+- Asset detail with mark price, SOD comparison, L2 orderbook, and live trend chart
+- Configuration page for watchlist symbols and local portfolio positions
 
-## Why web-only now
+## Data Flow
 
-For this assignment scope, web-first is the highest-confidence approach to ship quickly, validate realtime behavior, and keep deployment simple. Mobile-specific packaging can be added later without changing core domain/realtime modules.
+```mermaid
+flowchart LR
+  A[WebSocket ws://.../ws] --> B[Realtime Provider]
+  C[GET /api/symbols] --> B
+  B --> D[Watchlist Page]
+  B --> E[Portfolio Page]
+  B --> F[Asset Detail Page]
+  G[localStorage user config] --> B
+```
 
-## Run locally
+## Run
 
 ```bash
 cd frontend
@@ -24,49 +29,50 @@ npm install
 npm run dev
 ```
 
-By default, the app expects a backend websocket endpoint from `.env`.
-
-## Environment
-
-Copy `.env.example` to `.env` and adjust values:
-
-```bash
-cp .env.example .env
-```
-
-Primary variable:
-
-- `VITE_WS_URL` (example: `ws://localhost:8080/ws`)
-- `VITE_API_BASE_URL` (example: `http://localhost:8080`)
-- `VITE_CHART_POINT_INTERVAL_MS` (default `100`, lower = faster chart point updates)
-- `VITE_CHART_MAX_POINTS` (default `120`)
-- `VITE_CHART_CANDLE_WIDTH` (default `8`)
-- `VITE_CHART_CANDLE_GAP` (default `6`)
-
 ## Build
 
 ```bash
+cd frontend
 npm run build
 npm run preview
 ```
 
-## Simple deployment options
+## Configuration
 
-### Option A: Vercel / Netlify (recommended)
+- `VITE_WS_URL` (example `ws://localhost:8080/ws`)
+- `VITE_API_BASE_URL` (example `http://localhost:8080`)
+- `VITE_CHART_MAX_POINTS` (default `120`)
+- `VITE_CHART_CANDLE_WIDTH` (default `8`)
+- `VITE_CHART_CANDLE_GAP` (default `6`)
 
-- Build command: `npm run build`
-- Output directory: `dist`
-- Add `VITE_WS_URL` in deployment environment variables.
+## Routes
 
-### Option B: Static container
+- `/configure`
+- `/watchlist`
+- `/portfolio`
+- `/asset/:symbol`
 
-- Build with `npm run build`
-- Serve `dist` with any static web server (Nginx, Caddy, Cloudflare Pages, etc.).
+## Frontend API Contract
 
-## Required engineering behavior for all agents
+- Backend message and endpoint contract: `API_SPEC.md`
 
-- Be factual, rigorous, and strict.
-- Push back on weak approaches; do not concede unless there is a clearly better factual option.
-- Prefer deterministic, testable design over convenience hacks.
-- Preserve wire efficiency and performance constraints from requirements.
+## Frontend Update Workflow
+
+```mermaid
+flowchart TD
+  A[Pick UI behavior change] --> B{Data shape change needed?}
+  B -- Yes --> C[Update protocol types and provider reducers]
+  B -- No --> D[Update page and components]
+  C --> E[Update styles and formatting helpers]
+  D --> E
+  E --> F[Run npm run build]
+  F --> G[Verify watchlist portfolio asset-detail]
+  G --> H[Update README and API_SPEC]
+```
+
+## Dev-Level Improvement Ideas
+
+- Add zod-based runtime guards for websocket payload decoding in provider.
+- Add reusable typed sort hooks for all tabular screens.
+- Harden local config parsing with strict fallback validation and sanitization.
 
