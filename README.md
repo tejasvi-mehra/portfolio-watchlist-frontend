@@ -39,7 +39,7 @@ npm run preview
 
 ## Configuration
 
-- `VITE_WS_URL` (example `ws://localhost:8081/ws`)
+- `VITE_WS_URL` (example `ws://localhost:8080/ws`)
 - `VITE_API_BASE_URL` (example `http://localhost:8080`)
 - `VITE_LOG_LEVEL` (`debug`, `info`, `error`; default `info`)
 - `VITE_CHART_MAX_POINTS` (default `120`)
