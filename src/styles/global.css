@@ -152,6 +152,23 @@ select {
   overflow: visible;
 }
 
+.watchlist-table-wrap.watchlist-virtual-scroll {
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.watchlist-virtual-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #0f1117;
+}
+
+.watchlist-spacer-row td {
+  padding: 0;
+  border: 0;
+}
+
 .simple-table {
   width: 100%;
   border-collapse: collapse;

@@ -80,7 +80,6 @@ export function patchWatchlistQuotes(patches: Record<string, QuoteView>): void {
 
   if (!changed) return;
   quotes = next;
-  notifyGlobal();
 }
 
 export function useQuote(symbol: string): QuoteView | undefined {
