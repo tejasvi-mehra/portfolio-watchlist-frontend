@@ -5,16 +5,15 @@ import type {
   DiffEntry,
   OrderBookLevel,
   OrderBookUpdatePayload,
-  ServerEnvelope,
   SnapshotEntry,
   SnapshotPayload,
 } from "./protocol";
 
 export type ParsedServerMessage =
-  | ServerEnvelope<SnapshotPayload>
-  | ServerEnvelope<DiffBatchPayload>
-  | ServerEnvelope<ConnectionStatePayload>
-  | ServerEnvelope<OrderBookUpdatePayload>;
+  | { version: 1; type: "snapshot"; payload: SnapshotPayload }
+  | { version: 1; type: "diff_batch"; payload: DiffBatchPayload }
+  | { version: 1; type: "connection_state"; payload: ConnectionStatePayload }
+  | { version: 1; type: "orderbook_update"; payload: OrderBookUpdatePayload };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
