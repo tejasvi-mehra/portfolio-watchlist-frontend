@@ -142,6 +142,7 @@ export function ConfigurePage() {
           <p className="muted">Add symbols you want to follow in realtime from available symbols.</p>
           <form className="inline-form" onSubmit={addSymbol}>
             <select
+              className="symbol-select"
               value={symbolInput}
               onChange={(event) => setSymbolInput(event.target.value)}
               aria-label="Add watchlist symbol"
@@ -246,24 +247,27 @@ export function ConfigurePage() {
         <article className="card">
           <h3>Available Symbols (Backend Intersection)</h3>
           <p className="muted">
-            These are fetched from Hyperliquid metadata, intersected with backend `FEED_SYMBOLS`.
+            These are fetched from Hyperliquid metadata, intersected with the feed symbol allowlist.{" "}
+            {catalog.length > 0 ? `${catalog.length} symbols.` : null}
           </p>
           {catalogError ? <p className="muted">{catalogError}</p> : null}
           {catalog.length === 0 ? (
             <p className="muted">No symbols available.</p>
           ) : (
-            <div className="pill-row">
-              {catalog.slice(0, 120).map((item) => (
-                <button
-                  key={item.symbol}
-                  type="button"
-                  className="pill-action-btn"
-                  onClick={() => addCatalogSymbol(item.symbol)}
-                  title={`Add ${item.symbol} to watchlist`}
-                >
-                  {item.symbol}
-                </button>
-              ))}
+            <div className="catalog-scroll">
+              <div className="pill-row">
+                {catalog.map((item) => (
+                  <button
+                    key={item.symbol}
+                    type="button"
+                    className="pill-action-btn"
+                    onClick={() => addCatalogSymbol(item.symbol)}
+                    title={`Add ${item.symbol} to watchlist`}
+                  >
+                    {item.symbol}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </article>

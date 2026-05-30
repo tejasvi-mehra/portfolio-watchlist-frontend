@@ -13,7 +13,7 @@ function shouldLog(level: LogLevel): boolean {
 }
 
 function prefix(message: string): string {
-  return `[axis-web] ${message}`;
+  return `[portfolio-watchlist-frontend] ${message}`;
 }
 
 export const logger = {

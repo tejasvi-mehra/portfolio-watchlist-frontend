@@ -5,11 +5,42 @@ export type UserPosition = {
   avgCost: string;
 };
 
-const WATCHLIST_STORAGE_KEY = "axis.watchlist.symbols";
-const PORTFOLIO_STORAGE_KEY = "axis.portfolio.positions";
-const CONFIG_UPDATED_EVENT = "axis-config-updated";
+const WATCHLIST_STORAGE_KEY = "portfolio-watchlist-frontend.watchlist.symbols";
+const PORTFOLIO_STORAGE_KEY = "portfolio-watchlist-frontend.portfolio.positions";
+const CONFIG_UPDATED_EVENT = "portfolio-watchlist-frontend.config-updated";
 
-const DEFAULT_SYMBOLS = ["BTC", "ETH", "SOL"];
+const DEFAULT_SYMBOLS = [
+  "BTC",
+  "ETH",
+  "SOL",
+  "ARB",
+  "AVAX",
+  "BNB",
+  "DOGE",
+  "XRP",
+  "ADA",
+  "LINK",
+  "LTC",
+  "BCH",
+  "DOT",
+  "TRX",
+  "ATOM",
+  "MATIC",
+  "APT",
+  "OP",
+  "INJ",
+  "SEI",
+  "SUI",
+  "WIF",
+  "PEPE",
+  "FET",
+  "RNDR",
+  "NEAR",
+  "UNI",
+  "AAVE",
+  "CRV",
+  "FIL",
+];
 const DEFAULT_POSITIONS: UserPosition[] = [
   { id: "p1", symbol: "BTC", qty: "0.5", avgCost: "62000" },
   { id: "p2", symbol: "ETH", qty: "3", avgCost: "2800" },

@@ -125,8 +125,31 @@ select {
   cursor: pointer;
 }
 
+.catalog-scroll {
+  max-height: 360px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.75rem;
+  border: 1px solid #2a3040;
+  border-radius: 8px;
+  background: #0f1219;
+}
+
+.catalog-scroll .pill-row {
+  align-content: flex-start;
+}
+
+.symbol-select {
+  min-width: 12rem;
+  max-width: 100%;
+}
+
 .table-wrap {
   overflow-x: auto;
+}
+
+.watchlist-table-wrap {
+  overflow: visible;
 }
 
 .simple-table {

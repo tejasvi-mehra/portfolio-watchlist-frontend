@@ -3,19 +3,27 @@ import { useParams } from "react-router-dom";
 import { AnimatedNumber } from "../components/market/AnimatedNumber";
 import { ConnectionBadge } from "../components/market/ConnectionBadge";
 import { Sparkline } from "../components/market/Sparkline";
+import { MARK_PRICE_DECIMALS } from "../config/chart";
 import { useRealtime } from "../realtime/provider";
+import { useQuote } from "../realtime/watchlistStore";
 import { formatUtcWithMs } from "../utils/time";
 
 export function AssetDetailPage() {
   const { symbol = "" } = useParams();
-  const { subscribeAsset, unsubscribeAsset, connectionState, orderBooks, priceHistory, watchlist, openPrices } =
-    useRealtime();
+  const { subscribeAsset, unsubscribeAsset, connectionState, orderBooks, priceHistory, openPrices } = useRealtime();
   const normalized = symbol.toUpperCase();
   const orderBook = orderBooks[normalized];
-  const quote = watchlist[normalized];
+  const quote = useQuote(normalized);
   const history = priceHistory[normalized] || [];
   const sod = openPrices[normalized] ?? null;
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
+
+  const markPrice = useMemo(() => {
+    if (history.length > 0) {
+      return history[history.length - 1].price;
+    }
+    return quote?.lastPrice ?? null;
+  }, [history, quote?.lastPrice]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
@@ -29,14 +37,14 @@ export function AssetDetailPage() {
   }, [normalized, subscribeAsset, unsubscribeAsset]);
 
   const markTone = useMemo(() => {
-    if (quote?.lastPrice === undefined || quote?.lastPrice === null || sod === null) return "flat" as const;
-    return quote.lastPrice >= sod ? ("up" as const) : ("down" as const);
-  }, [quote?.lastPrice, sod]);
+    if (markPrice === null || sod === null) return "flat" as const;
+    return markPrice >= sod ? ("up" as const) : ("down" as const);
+  }, [markPrice, sod]);
 
   const sodDayChangePct = useMemo(() => {
-    if (quote?.lastPrice === undefined || quote?.lastPrice === null || sod === null || sod <= 0) return null;
-    return ((quote.lastPrice - sod) / sod) * 100;
-  }, [quote?.lastPrice, sod]);
+    if (markPrice === null || sod === null || sod <= 0) return null;
+    return ((markPrice - sod) / sod) * 100;
+  }, [markPrice, sod]);
 
   const l2StreamingHealthy =
     Boolean(orderBook) && orderBook.timestampMs > 0 && nowMs - orderBook.timestampMs <= 3000;
@@ -57,7 +65,7 @@ export function AssetDetailPage() {
       <div className="summary-grid">
         <article className="card">
           <h3>Mark Price</h3>
-          <AnimatedNumber value={quote?.lastPrice ?? null} decimals={2} tone={markTone} />
+          <AnimatedNumber value={markPrice} decimals={MARK_PRICE_DECIMALS} tone={markTone} />
         </article>
         <article className="card">
           <h3>Start of Day Price</h3>
