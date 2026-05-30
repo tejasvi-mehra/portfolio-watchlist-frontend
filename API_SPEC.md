@@ -1,19 +1,30 @@
-# Frontend API Spec
+# API Spec
 
-This file defines the frontend contract with backend endpoints and websocket messages.
+**Repository:** https://github.com/tejasvi-mehra/portfolio-watchlist-frontend
+
+How this client consumes the market feed over HTTP and WebSocket (`VITE_API_BASE_URL`, `VITE_WS_URL`).
+
+## Environment
+
+| Variable | Example (local) | Example (production) |
+|---|---|---|
+| `VITE_WS_URL` | `ws://localhost:8080/ws` | `wss://portfolio-watchlist-production.up.railway.app/ws` |
+| `VITE_API_BASE_URL` | `http://localhost:8080` | `https://portfolio-watchlist-production.up.railway.app` |
 
 ## HTTP Consumption
 
 ### `GET /api/symbols`
 
-Used by configuration and SOD/open-price mapping.
+**Called from:** `RealtimeProvider.loadOpenPrices()`, ConfigurePage symbol suggestions
 
-Expected shape:
+**Request:** `GET ${VITE_API_BASE_URL}/api/symbols`
+
+**Expected response:**
 
 ```json
 {
   "provider": "hyperliquid",
-  "configured_mode": "all",
+  "configured_mode": "subset",
   "symbols": [
     {
       "symbol": "BTC",
@@ -23,16 +34,21 @@ Expected shape:
 }
 ```
 
-Frontend usage:
+| Field | Usage |
+|---|---|
+| `symbols[].symbol` | Configure page picker; normalize uppercase |
+| `symbols[].open_price` | Stored in `openPrices` for SOD day-change % |
+| `provider` | Display only (optional) |
 
-- Builds symbol suggestions for configure page.
-- Stores `open_price` by symbol for SOD comparison and day-change calculations.
+**Retry:** Provider retries every 5s while socket open and `openPrices` empty.
+
+---
 
 ## WebSocket Consumption
 
-Endpoint: `GET /ws`
+**Endpoint:** `${VITE_WS_URL}`
 
-Envelope:
+**Envelope:**
 
 ```json
 {
@@ -42,9 +58,15 @@ Envelope:
 }
 ```
 
-## Client -> Server Messages
+Parsing: `realtime/protocolGuards.ts` → `parseServerMessage`
+
+---
+
+## Client → Server Messages
 
 ### `subscribe`
+
+Primary subscription and resync message.
 
 ```json
 {
@@ -57,18 +79,12 @@ Envelope:
 }
 ```
 
-### `resume`
+| Field | Source in this app |
+|---|---|
+| `symbols` | Watchlist ∪ portfolio ∪ forced asset symbols (`getDesiredSymbols()`) |
+| `last_seen_seq` | `lastSeenSeqRef`; `0` forces snapshot |
 
-```json
-{
-  "version": 1,
-  "type": "resume",
-  "payload": {
-    "symbols": ["BTC", "ETH"],
-    "last_seen_seq": 1250
-  }
-}
-```
+**Sent when:** socket open, config save, stream resync (after `unsubscribe`), asset page bootstrap.
 
 ### `unsubscribe`
 
@@ -80,120 +96,99 @@ Envelope:
 }
 ```
 
-### `subscribe_asset`
+**Sent when:** start of `queueStreamResync()` on an open socket.
 
-```json
-{
-  "version": 1,
-  "type": "subscribe_asset",
-  "payload": {
-    "symbols": ["BTC"]
-  }
-}
-```
+### `subscribe_asset` / `unsubscribe_asset`
 
-### `unsubscribe_asset`
+Request or release L2 orderbook stream for asset detail symbols.
 
-```json
-{
-  "version": 1,
-  "type": "unsubscribe_asset",
-  "payload": {
-    "symbols": ["BTC"]
-  }
-}
-```
+### `resume`
 
-## Server -> Frontend Messages
+The feed accepts `resume` with the same semantics as `subscribe`. **This app sends `subscribe` only**, always with `last_seen_seq`.
+
+---
+
+## Server → Client Messages
 
 ### `snapshot`
 
-Applied as full state replacement and chart seed.
-
-```json
-{
-  "version": 1,
-  "type": "snapshot",
-  "payload": {
-    "seq": 200,
-    "entries": [
-      {
-        "symbol": "BTC",
-        "last_price": "103240.7",
-        "updated_at": "2026-05-29T05:00:00Z",
-        "provider": "hyperliquid"
-      }
-    ]
-  }
-}
-```
+Full filtered baseline. Handler: `applySnapshot` → `replaceWatchlistQuotes`.
 
 ### `diff_batch`
 
-Applied only when `seq` is newer than `lastSeenSeq`.
-
-```json
-{
-  "version": 1,
-  "type": "diff_batch",
-  "payload": {
-    "seq": 201,
-    "flushed_at": "2026-05-29T05:00:00.050Z",
-    "diffs": [
-      {
-        "symbol": "BTC",
-        "last_price": "103242.1",
-        "updated_at": "2026-05-29T05:00:00.041Z"
-      }
-    ]
-  }
-}
-```
+Sparse updates with monotonic `seq`. Applied only if `payload.seq > state.lastSeenSeq`.
 
 ### `connection_state`
 
-```json
-{
-  "version": 1,
-  "type": "connection_state",
-  "payload": {
-    "state": "connected",
-    "reason": "market updates resumed",
-    "timestamp": "2026-05-29T05:00:02Z"
-  }
-}
-```
-
-Supported states:
-
-- `connected`
-- `reconnecting`
-- `stale`
+Values: `connected`, `reconnecting`, `stale`. Drives connection badge and recovery (`markStreamRecovered` on `connected`).
 
 ### `orderbook_update`
 
-```json
-{
-  "version": 1,
-  "type": "orderbook_update",
-  "payload": {
-    "symbol": "BTC",
-    "timestamp": "2026-05-29T05:00:03Z",
-    "l2_bids": [{ "price": "103240.1", "size": "1.2", "count": 3 }],
-    "l2_asks": [{ "price": "103241.0", "size": "0.9", "count": 2 }],
-    "l3_supported": false
-  }
-}
+L2 bids/asks for asset detail. Stale if no update within `L2_STALE_AFTER_MS` (3s).
+
+---
+
+## Client state rules
+
+| Rule | Implementation |
+|---|---|
+| Display mark | `watchlistStore` → `QuoteView.lastPrice` |
+| Day change % | `computeDayChangePct(mark, openPrices[symbol])` — SOD only |
+| Chart price | Same mark as UI; 1s carry-forward when flat |
+| Seq tracking | Monotonic; reset to 0 after 3 failed stale recoveries |
+| Portfolio positions | localStorage mock — not from feed API yet |
+
+---
+
+## Sync & recovery
+
+```mermaid
+sequenceDiagram
+  participant App as Client app
+  participant Feed as Market feed
+
+  App->>Feed: subscribe {symbols, last_seen_seq: 0}
+  Feed-->>App: snapshot
+  Feed-->>App: diff_batch...
+
+  App->>Feed: unsubscribe
+  App->>Feed: subscribe {symbols, last_seen_seq: N}
+  Feed-->>App: replay or snapshot
 ```
 
-Frontend usage:
+| Scenario | `last_seen_seq` | Expected feed response |
+|---|---|---|
+| First visit | `0` | `snapshot` |
+| Reconnect within replay window | last applied seq | Replay `diff_batch` chain |
+| Reconnect outside replay window | last applied seq | `snapshot` fallback |
+| 3 failed stale recoveries | reset to `0` | Full `snapshot` |
 
-- Orderbook tables in asset detail.
-- Asset-detail connection badge requires fresh L2 stream activity.
+---
 
-## Frontend State Rules
+## Connection UI thresholds
 
-- `watchlist[symbol].lastPrice` is the displayed mark in UI.
-- Day change is always computed relative to `openPrices[symbol]` (SOD).
-- Chart appends on every tick and adds 1-second carry-forward points when price is unchanged.
-- `lastSeenSeq` is monotonic and rejects stale replay batches.
+| Constant | Value | Purpose |
+|---|---|---|
+| `STALE_AFTER_MS` | 6000 | No quote tick → stale / recovery |
+| `L2_STALE_AFTER_MS` | 3000 | No orderbook → retry `subscribe_asset` |
+| `RETRY_INTERVAL_MS` | 2000 | Min gap between resync retries |
+
+Feed publishes `stale` at `WS_STALE_AFTER=5s`; this app uses 6s client-side to avoid fighting connect grace.
+
+---
+
+## Future API extensions
+
+| API | Purpose |
+|---|---|
+| `GET /api/portfolio` | Positions from server instead of localStorage |
+| `PUT /api/watchlist` | Server-persisted symbol list |
+| `subscribe_fills` | Realtime fill events by order id |
+| Auth on WS upgrade | User-scoped streams |
+
+---
+
+## Related docs
+
+- [`README.md`](README.md) — Run, test, performance
+- [`PERF_VALIDATION.md`](PERF_VALIDATION.md) — 60 fps validation steps
