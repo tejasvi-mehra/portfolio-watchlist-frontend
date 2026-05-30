@@ -30,7 +30,7 @@ Method: Console rAF sampler (see `PERF_VALIDATION.md` §D) and Chrome Performanc
 npm run test:run
 ```
 
-32 tests passing — reconnect, stale gating, animation scheduler, session seq guards.
+34 tests passing — reconnect, stale gating, animation scheduler, session seq guards, watchlist store notify paths.
 
 ## Reproduce
 

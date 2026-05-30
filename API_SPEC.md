@@ -179,12 +179,48 @@ Feed publishes `stale` at `WS_STALE_AFTER=5s`; this app uses 6s client-side to a
 
 ## Future API extensions
 
+The following are **not implemented** today.
+
 | API | Purpose |
 |---|---|
 | `GET /api/portfolio` | Positions from server instead of localStorage |
 | `PUT /api/watchlist` | Server-persisted symbol list |
-| `subscribe_fills` | Realtime fill events by order id |
 | Auth on WS upgrade | User-scoped streams |
+
+### `subscribe_fills` — order fill stream (planned)
+
+**Goal:** Subscribe to fill events by order id and update portfolio quantity, average cost, and P&L in realtime as fills arrive.
+
+**Planned client → server message:**
+
+```json
+{
+  "version": 1,
+  "type": "subscribe_fills",
+  "payload": {
+    "order_ids": ["0xabc123..."],
+    "last_seen_fill_seq": 0
+  }
+}
+```
+
+| Field | Usage in this app (planned) |
+|---|---|
+| `order_ids` | Exchange order ids tied to portfolio rows |
+| `last_seen_fill_seq` | Highest fill seq applied locally; `0` requests fill baseline replay |
+
+**Planned server → client message:**
+
+| Type | Purpose |
+|---|---|
+| `fill_event` | Incremental fill (qty, price, fees, remaining size, timestamp) → update position qty, avg cost, P&L |
+
+**Design notes:**
+
+- Fill delivery uses a separate **`fill_seq`** stream, independent of quote **`last_seen_seq`** / `diff_batch` replay. Watchlist resync must not replay fills through the quote path.
+- Portfolio page would subscribe to fills; watchlist stays on the quote stream only.
+- Optional companion: `unsubscribe_fills` without closing the websocket.
+- Positions are mock data in localStorage today; live marks only until this ships.
 
 ---
 

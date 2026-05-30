@@ -176,7 +176,7 @@ Default 30-symbol watchlist: `src/config/userConfig.ts`
 npm run test:run
 ```
 
-**32 tests** across 9 files. See [`API_SPEC.md`](API_SPEC.md) and test files under `src/`.
+**34 tests** across 9 files. See [`API_SPEC.md`](API_SPEC.md) and test files under `src/`.
 
 ## Performance validation
 
@@ -214,8 +214,8 @@ src/
 
 ## Future improvements
 
-- **Server-backed user state** — Persist watchlist and portfolio via authenticated API instead of localStorage.
-- **Fetch portfolio from feed service** — Positions, avg cost, and fills from REST/WS.
+- **Order fill stream (`subscribe_fills`)** — Subscribe to fill events by order id over websocket; apply `fill_event` messages to update qty, average cost, and P&L. Uses a separate `fill_seq` from quote `last_seen_seq` so watchlist resync is unchanged. Optional `unsubscribe_fills` without closing the socket. Planned message shapes: [`API_SPEC.md`](API_SPEC.md#future-api-extensions). Today portfolio uses mock positions with live marks only.
+- **Server-backed user state** — Persist watchlist and portfolio via `GET /api/portfolio` / `PUT /api/watchlist` instead of localStorage.
 - **Mobile app (Expo/React Native)** — Reuse session/store patterns; Reanimated for 60fps on device.
 - **Reconnection UX** — Jittered backoff, visible replay progress, Playwright E2E for tab resume.
 - **Graphics** — Canvas/WebGL sparkline, `prefers-reduced-motion`, skeleton loaders.
