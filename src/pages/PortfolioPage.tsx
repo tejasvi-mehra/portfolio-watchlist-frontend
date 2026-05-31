@@ -81,7 +81,7 @@ export function PortfolioPage() {
               <th>Mark Price</th>
               <th>Position Value</th>
               <th>Unrealized P&amp;L</th>
-              <th>ROE %</th>
+              <th>ROI %</th>
               <th>Updated At (UTC)</th>
             </tr>
           </thead>

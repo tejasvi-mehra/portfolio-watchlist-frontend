@@ -13,7 +13,7 @@ describe("domain calculators", () => {
     expect(row.costBasis).toBe(200);
     expect(row.positionValue).toBe(240);
     expect(row.unrealizedPnl).toBe(40);
-    expect(row.roePct).toBe(20);
+    expect(row.roiPct).toBe(20);
   });
 
   it("handles missing mark price in portfolio row", () => {
@@ -21,7 +21,7 @@ describe("domain calculators", () => {
     expect(row.costBasis).toBe(200);
     expect(row.positionValue).toBeNull();
     expect(row.unrealizedPnl).toBeNull();
-    expect(row.roePct).toBeNull();
+    expect(row.roiPct).toBeNull();
   });
 
   it("aggregates portfolio summary", () => {

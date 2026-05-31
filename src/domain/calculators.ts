@@ -2,7 +2,7 @@ export type PortfolioRowMetrics = {
   positionValue: number | null;
   costBasis: number;
   unrealizedPnl: number | null;
-  roePct: number | null;
+  roiPct: number | null;
 };
 
 export type PortfolioSummary = {
@@ -25,17 +25,17 @@ export function computePortfolioRow(qty: number, entryPrice: number, markPrice: 
       positionValue: null,
       costBasis,
       unrealizedPnl: null,
-      roePct: null,
+      roiPct: null,
     };
   }
   const positionValue = markPrice * qty;
   const unrealizedPnl = (markPrice - entryPrice) * qty;
-  const roePct = costBasis > 0 ? (unrealizedPnl / costBasis) * 100 : null;
+  const roiPct = costBasis > 0 ? (unrealizedPnl / costBasis) * 100 : null;
   return {
     positionValue,
     costBasis,
     unrealizedPnl,
-    roePct,
+    roiPct,
   };
 }
 
