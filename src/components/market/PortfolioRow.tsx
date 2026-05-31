@@ -49,9 +49,9 @@ function PortfolioRowInner({ position }: PortfolioRowProps) {
       </td>
       <td>
         <AnimatedNumber
-          value={metrics.roePct}
+          value={metrics.roiPct}
           decimals={2}
-          tone={metrics.roePct !== null ? (metrics.roePct >= 0 ? "up" : "down") : "flat"}
+          tone={metrics.roiPct !== null ? (metrics.roiPct >= 0 ? "up" : "down") : "flat"}
         />
       </td>
       <td className="muted">{quote?.updatedAtMs ? formatUtcWithMs(quote.updatedAtMs) : "--"}</td>
