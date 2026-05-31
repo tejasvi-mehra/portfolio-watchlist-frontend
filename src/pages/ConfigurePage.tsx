@@ -245,11 +245,7 @@ export function ConfigurePage() {
         </article>
 
         <article className="card">
-          <h3>Available Symbols (Backend Intersection)</h3>
-          <p className="muted">
-            These are fetched from Hyperliquid metadata, intersected with the feed symbol allowlist.{" "}
-            {catalog.length > 0 ? `${catalog.length} symbols.` : null}
-          </p>
+          <h3>Available Symbols (Hyperliquid)</h3>
           {catalogError ? <p className="muted">{catalogError}</p> : null}
           {catalog.length === 0 ? (
             <p className="muted">No symbols available.</p>
